@@ -147,7 +147,7 @@ struct TextToImageView: View {
           HStack {
             ProgressView()
               .scaleEffect(0.7)
-            Text("Loading model...")
+            Text(viewModel.selectedModel == .qwen21 ? "Loading model and generating..." : "Loading model...")
               .font(.caption)
               .foregroundStyle(.secondary)
           }
@@ -222,6 +222,30 @@ struct TextToImageView: View {
     @Bindable var vm = viewModel
     ScrollView {
       VStack(alignment: .leading, spacing: 20) {
+        Section {
+          Picker("Model", selection: $vm.selectedModel) {
+            ForEach(TextToImageModel.allCases) { model in
+              Text(model.rawValue).tag(model)
+            }
+          }
+          .pickerStyle(.menu)
+
+          if vm.selectedModel == .qwen21 {
+            Text("Runs through MFLUX on Apple Silicon. First generation downloads about 33 GB of model files.")
+              .font(.caption)
+              .foregroundStyle(.secondary)
+          } else {
+            Text("Uses the app’s built-in MLX runtime and the Qwen-Image-2512 model.")
+              .font(.caption)
+              .foregroundStyle(.secondary)
+          }
+        } header: {
+          Text("Model")
+            .font(.headline)
+        }
+
+        Divider()
+
         // Prompt Section
         Section {
           VStack(alignment: .leading, spacing: 8) {
@@ -243,23 +267,25 @@ struct TextToImageView: View {
               )
           }
 
-          VStack(alignment: .leading, spacing: 8) {
-            Text("Negative Prompt")
-              .font(.subheadline.bold())
+          if vm.selectedModel == .qwen2512 {
+            VStack(alignment: .leading, spacing: 8) {
+              Text("Negative Prompt")
+                .font(.subheadline.bold())
 
-            TextEditor(text: $vm.negativePrompt)
-              .font(.body)
-              .frame(height: 50)
-              .scrollContentBackground(.hidden)
-              .padding(8)
-              .background(
-                RoundedRectangle(cornerRadius: 8)
-                  .fill(Color(nsColor: .textBackgroundColor))
-              )
-              .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                  .strokeBorder(Color.secondary.opacity(0.2), lineWidth: 1)
-              )
+              TextEditor(text: $vm.negativePrompt)
+                .font(.body)
+                .frame(height: 50)
+                .scrollContentBackground(.hidden)
+                .padding(8)
+                .background(
+                  RoundedRectangle(cornerRadius: 8)
+                    .fill(Color(nsColor: .textBackgroundColor))
+                )
+                .overlay(
+                  RoundedRectangle(cornerRadius: 8)
+                    .strokeBorder(Color.secondary.opacity(0.2), lineWidth: 1)
+                )
+            }
           }
         } header: {
           Text("Prompt")
@@ -275,9 +301,15 @@ struct TextToImageView: View {
               .font(.subheadline.bold())
 
             Picker("Size", selection: $vm.width) {
-              Text("512x512").tag(512)
-              Text("768x768").tag(768)
-              Text("1024x1024").tag(1024)
+              if vm.selectedModel == .qwen2512 {
+                Text("512x512").tag(512)
+                Text("768x768").tag(768)
+                Text("1024x1024").tag(1024)
+              } else {
+                Text("1024x1024").tag(1024)
+                Text("1536x1536").tag(1536)
+                Text("2048x2048").tag(2048)
+              }
             }
             .pickerStyle(.segmented)
             .onChange(of: viewModel.width) { _, newValue in
@@ -293,13 +325,15 @@ struct TextToImageView: View {
             description: "More steps = higher quality"
           )
 
-          ParameterSlider(
-            title: "Guidance Scale",
-            value: $vm.guidanceScale,
-            range: 1...10,
-            step: 0.5,
-            description: "How closely to follow the prompt"
-          )
+          if vm.selectedModel == .qwen2512 {
+            ParameterSlider(
+              title: "Guidance Scale",
+              value: $vm.guidanceScale,
+              range: 1...10,
+              step: 0.5,
+              description: "How closely to follow the prompt"
+            )
+          }
 
           SeedInputView(
             seed: $vm.seed,
@@ -313,41 +347,41 @@ struct TextToImageView: View {
         Divider()
 
         // Advanced Options
-        CollapsibleSection(
-          title: "Advanced Options",
-          isExpanded: $vm.showAdvancedOptions
-        ) {
-          VStack(spacing: 16) {
-            // True CFG Scale (always enabled)
-            ParameterSlider(
-              title: "True CFG Scale",
-              value: $vm.trueCFGScale,
-              range: 1...10,
-              step: 0.5
-            )
+        if vm.selectedModel == .qwen2512 {
+          CollapsibleSection(
+            title: "Advanced Options",
+            isExpanded: $vm.showAdvancedOptions
+          ) {
+            VStack(spacing: 16) {
+              ParameterSlider(
+                title: "True CFG Scale",
+                value: $vm.trueCFGScale,
+                range: 1...10,
+                step: 0.5
+              )
 
-            // LoRA Selection
-            VStack(alignment: .leading, spacing: 8) {
-              Text("LoRA Adapter")
-                .font(.subheadline.bold())
+              VStack(alignment: .leading, spacing: 8) {
+                Text("LoRA Adapter")
+                  .font(.subheadline.bold())
 
-              if let loraPath = vm.selectedLoRAPath {
-                HStack {
-                  Text(loraPath.lastPathComponent)
+                if let loraPath = vm.selectedLoRAPath {
+                  HStack {
+                    Text(loraPath.lastPathComponent)
+                      .font(.caption)
+                      .lineLimit(1)
+                    Spacer()
+                    Button("Remove") {
+                      viewModel.selectedLoRAPath = nil
+                    }
+                    .buttonStyle(.borderless)
                     .font(.caption)
-                    .lineLimit(1)
-                  Spacer()
-                  Button("Remove") {
-                    viewModel.selectedLoRAPath = nil
                   }
-                  .buttonStyle(.borderless)
-                  .font(.caption)
+                } else {
+                  Button("Select LoRA...") {
+                    showLoRAFilePicker = true
+                  }
+                  .buttonStyle(.bordered)
                 }
-              } else {
-                Button("Select LoRA...") {
-                  showLoRAFilePicker = true
-                }
-                .buttonStyle(.bordered)
               }
             }
           }

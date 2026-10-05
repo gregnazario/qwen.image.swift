@@ -4,6 +4,13 @@ import QwenImage
 import QwenImageRuntime
 import MLX
 
+enum TextToImageModel: String, CaseIterable, Identifiable {
+  case qwen21 = "Qwen-Image-2.1"
+  case qwen2512 = "Qwen-Image-2512"
+
+  var id: String { rawValue }
+}
+
 @Observable @MainActor
 final class TextToImageViewModel {
   private enum LightningDefaults {
@@ -13,12 +20,34 @@ final class TextToImageViewModel {
     static let loraFilenameSubstring: String = "Lightning-4steps"
   }
 
+  var selectedModel: TextToImageModel = .qwen21 {
+    didSet {
+      UserDefaults.standard.set(selectedModel.rawValue, forKey: "textToImageModel")
+      guard oldValue != selectedModel else { return }
+      if selectedModel == .qwen21 {
+        width = 1024
+        height = 1024
+        steps = 40
+        guidanceScale = 1.0
+        selectedLoRAPath = nil
+        didAutoApplyLightningDefaults = false
+      } else {
+        width = 512
+        height = 512
+        steps = 20
+        didAutoApplyLightningDefaults = false
+        selectedLoRAPath = kDefaultTextToImageLightningLoRAPath
+        applyLightningDefaultsIfNeeded()
+      }
+    }
+  }
+
   var prompt: String = ""
   var negativePrompt: String = ""
 
-  var width: Int = 512
-  var height: Int = 512
-  var steps: Int = 20
+  var width: Int = 1024
+  var height: Int = 1024
+  var steps: Int = 40
   var guidanceScale: Float = 1.0
   var trueCFGScale: Float = 1.0
   var seed: UInt64? = nil
@@ -38,12 +67,22 @@ final class TextToImageViewModel {
   private var generationTask: Task<Void, Never>?
 
   init() {
-    selectedLoRAPath = kDefaultTextToImageLightningLoRAPath
+    if let savedModel = UserDefaults.standard.string(forKey: "textToImageModel"),
+       let model = TextToImageModel(rawValue: savedModel) {
+      selectedModel = model
+    }
+    if selectedModel == .qwen2512 {
+      width = 512
+      height = 512
+      steps = 20
+    }
+    selectedLoRAPath = selectedModel == .qwen2512 ? kDefaultTextToImageLightningLoRAPath : nil
     applyLightningDefaultsIfNeeded()
   }
   var appState: AppState?
 
   func applyLightningDefaultsIfNeeded() {
+    guard selectedModel == .qwen2512 else { return }
     let isLightningLoRASelected =
       selectedLoRAPath?.lastPathComponent.contains(LightningDefaults.loraFilenameSubstring) == true
 
@@ -66,6 +105,11 @@ final class TextToImageViewModel {
 
     guard let appState else {
       generationState = .error("App state not available")
+      return
+    }
+
+    if selectedModel == .qwen21 {
+      generateWithQwen21()
       return
     }
 
@@ -172,10 +216,46 @@ final class TextToImageViewModel {
     }
   }
 
+  private func generateWithQwen21() {
+    let promptText = prompt
+    let widthValue = width
+    let heightValue = height
+    let stepCount = steps
+    let randomSeed = useRandomSeed
+    let seedValue = seed
+    let actualSeed = randomSeed ? UInt64.random(in: 0...UInt64.max) : (seedValue ?? 0)
+
+    generationState = .loading
+    generatedImage = nil
+    generationTask = Task { [weak self] in
+      do {
+        let request = Qwen21GenerationRequest(
+          prompt: promptText,
+          width: widthValue,
+          height: heightValue,
+          steps: stepCount,
+          seed: actualSeed
+        )
+        let image = try await Qwen21RuntimeService.shared.generate(request)
+        try Task.checkCancellation()
+        guard let self else { return }
+        self.generatedImage = image
+        self.generationState = .complete
+        if randomSeed {
+          self.seed = actualSeed
+        }
+      } catch {
+        guard let self else { return }
+        self.generationState = Task.isCancelled ? .idle : .error(error.localizedDescription)
+      }
+    }
+  }
+
   func cancelGeneration() {
     generationTask?.cancel()
     generationTask = nil
     generationState = .idle
+    Task { await Qwen21RuntimeService.shared.cancel() }
   }
 
   func exportImage(to url: URL) throws {

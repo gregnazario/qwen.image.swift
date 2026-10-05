@@ -81,7 +81,7 @@ struct OnboardingView: View {
         Text("Welcome to Qwen Image")
           .font(.largeTitle.bold())
 
-        Text("Extract transparent layers from any image using AI")
+        Text("Generate and edit images locally, or decompose images into transparent layers")
           .font(.title3)
           .foregroundStyle(.secondary)
           .multilineTextAlignment(.center)
@@ -112,10 +112,10 @@ struct OnboardingView: View {
           .foregroundStyle(.tertiary)
 
         VStack(spacing: 16) {
-          Image(systemName: "square.split.2x1")
+          Image(systemName: "sparkles")
             .font(.system(size: 40))
             .foregroundStyle(.blue)
-          Text("Layers")
+          Text("Create")
             .font(.caption)
             .foregroundStyle(.secondary)
         }
@@ -149,27 +149,28 @@ struct OnboardingView: View {
         Text("Download the Model")
           .font(.title2.bold())
 
-        Text("Before you can extract layers, the app needs to download the Qwen-Image-Layered AI model.\n\n• Size: ~54GB\n• Location: ~/.cache/huggingface/hub\n• One-time download")
+        Text("Text-to-image uses Qwen-Image-2.1 through MFLUX. Install MFLUX once, then the first generation downloads the model automatically.\n\nuv tool install --upgrade mflux\n\nModel files are about 33GB and stay on your Mac.")
           .font(.callout)
           .foregroundStyle(.secondary)
           .multilineTextAlignment(.center)
+          .textSelection(.enabled)
       }
 
       HStack(spacing: 20) {
         FeatureBadge(
           icon: "wifi",
-          title: "Stable Connection",
-          description: "~35GB for 8-bit"
+          title: "Apple Silicon",
+          description: "Local MLX runtime"
         )
         FeatureBadge(
           icon: "clock",
-          title: "~15 minutes",
-          description: "On fast internet"
+          title: "First run",
+          description: "Downloads once"
         )
         FeatureBadge(
           icon: "harddrive",
-          title: "54GB Storage",
-          description: "For full model"
+          title: "33GB Storage",
+          description: "Qwen-Image-2.1"
         )
       }
 
@@ -469,23 +470,23 @@ struct OnboardingView: View {
       VStack(spacing: 16) {
         WorkflowStep(
           number: 1,
-          title: "Drop an Image",
-          description: "Drag and drop any image onto the workspace"
+          title: "Choose a Mode",
+          description: "Generate, edit, or decompose an image"
         )
         WorkflowStep(
           number: 2,
-          title: "Choose Settings",
-          description: "Pick a preset or customize layers and quality"
+          title: "Set Options",
+          description: "Write a prompt and choose image size and quality"
         )
         WorkflowStep(
           number: 3,
           title: "Generate",
-          description: "Click Generate to extract layers"
+          description: "Run the selected model on your Mac"
         )
         WorkflowStep(
           number: 4,
           title: "Export",
-          description: "Save layers as PNG files"
+          description: "Save your image locally"
         )
       }
 
@@ -507,7 +508,7 @@ struct OnboardingView: View {
         Text("You're Ready!")
           .font(.largeTitle.bold())
 
-        Text("The model manager will guide you through downloading the AI model. You can access it from the sidebar anytime.")
+        Text("Text-to-image uses MFLUX and downloads Qwen-Image-2.1 on first use. Other models are available in Model Manager.")
           .font(.callout)
           .foregroundStyle(.secondary)
           .multilineTextAlignment(.center)

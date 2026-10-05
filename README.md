@@ -1,10 +1,42 @@
-# Qwen Image Swift
+# Qwen Image Studio for macOS
 
-Swift port of Qwen Image runs on Apple Silicon Macs using **[mlx-swift](https://github.com/ml-explore/mlx-swift)**.
+A native SwiftUI app for running Qwen image models locally on Apple Silicon. Text-to-image now defaults to **Qwen-Image-2.1** through the maintained [MFLUX MLX runtime](https://github.com/mflux-community/mflux); the app's Swift/MLX runtime continues to support Qwen-Image-2512, image editing, and layered decomposition.
 
-## Try it
+## Qwen-Image-2.1 setup
 
-Download the app: **[QwenImageApp.dmg](https://github.com/mzbac/qwen.image.swift/releases/latest/download/QwenImageApp.dmg)**
+1. Install [uv](https://docs.astral.sh/uv/getting-started/installation/).
+2. Install MFLUX from its official package:
+
+   ```bash
+   uv tool install --upgrade mflux
+   ```
+
+3. Open the app, choose **Text to Image → Qwen-Image-2.1**, and generate. MFLUX downloads the model from Hugging Face on first use (about 33 GB); subsequent generations run locally.
+
+Qwen-Image-2.1 uses around 46 GB of peak unified memory in MFLUX's default BF16 profile. A 64 GB Apple Silicon Mac is the comfortable starting point; smaller machines can use MFLUX's `-q 8` quantized mode from the CLI. The app targets macOS 14 or newer.
+
+Qwen-Image-2.1 weights are distributed under the [Qwen Research License](https://github.com/QwenLM/Qwen-Image-2.1/blob/main/LICENSE), separate from this app's GPLv3 license.
+
+To generate directly in Terminal:
+
+```bash
+mflux-generate-qwen-2.1 \
+  --prompt "A red fox in a snowy forest at sunrise, editorial wildlife photography" \
+  --width 1024 --height 1024 --steps 40 --seed 42 \
+  --output fox.png
+```
+
+MFLUX is a separate open-source project and is not bundled with this app. The app locates `mflux-generate-qwen-2.1` on `PATH`, in `~/.local/bin`, or in the common Homebrew binary folders.
+
+## Build
+
+Build the native app with Xcode:
+
+```bash
+xcodebuild -scheme QwenImageApp -configuration Release -derivedDataPath .build/xcode -destination 'platform=macOS' build
+```
+
+The upstream 0.1.4 app release predates Qwen-Image-2.1 support. Use the build above to run this fork until it publishes its own release.
 
 ## CLI
 
@@ -30,7 +62,7 @@ Use `--profile` to print timing + RSS checkpoints so you can see where memory sp
 
 ### Download the CLI
 
-Grab the latest signed `QwenImageCLI` binary from the [0.1.0 release](https://github.com/mzbac/qwen.image.swift/releases/tag/0.1.0). The asset is shipped as a zipped bundle; you can automate the download/unzip like this:
+Grab the latest signed `QwenImageCLI` binary from the [upstream 0.1.0 release](https://github.com/mzbac/qwen.image.swift/releases/tag/0.1.0). The asset is shipped as a zipped bundle; you can automate the download/unzip like this:
 
 ```bash
 curl -L https://github.com/mzbac/qwen.image.swift/releases/download/0.1.0/qwen.image.macos.arm64.zip \

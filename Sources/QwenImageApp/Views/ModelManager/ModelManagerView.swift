@@ -14,10 +14,30 @@ struct ModelManagerView: View {
         VStack(spacing: 8) {
           Text("Model Manager")
             .font(.largeTitle.bold())
-          Text("Download and manage AI models for image generation")
+          Text("Manage models used by the app’s built-in MLX pipelines")
             .foregroundStyle(.secondary)
         }
         .padding(.top, 20)
+
+        VStack(alignment: .leading, spacing: 10) {
+          Label("Qwen-Image-2.1", systemImage: "sparkles")
+            .font(.headline)
+          Text("Text-to-image uses MFLUX, which manages its own model download. Install it once with this command:")
+            .font(.callout)
+            .foregroundStyle(.secondary)
+          Text("uv tool install --upgrade mflux")
+            .font(.system(.callout, design: .monospaced))
+            .textSelection(.enabled)
+          Text("The first generation downloads about 33 GB. After that, the model runs locally.")
+            .font(.caption)
+            .foregroundStyle(.tertiary)
+        }
+        .padding()
+        .frame(maxWidth: 600, alignment: .leading)
+        .background(
+          RoundedRectangle(cornerRadius: 12)
+            .fill(Color.purple.opacity(0.06))
+        )
 
         // Model Cards
         VStack(spacing: 16) {
